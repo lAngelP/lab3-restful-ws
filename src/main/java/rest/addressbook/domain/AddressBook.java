@@ -1,12 +1,16 @@
 package rest.addressbook.domain;
 
+import rest.addressbook.utils.EqualsUtils;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A really simple Address Book. This class is not thread safe.
  */
-public class AddressBook {
+public class AddressBook implements Cloneable {
 
   private int nextId = 1;
   private List<Person> personList = new ArrayList<>();
@@ -46,5 +50,27 @@ public class AddressBook {
     int oldValue = nextId;
     nextId++;
     return oldValue;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof AddressBook)) return false;
+    AddressBook other = (AddressBook) obj;
+    return other.nextId == this.nextId && EqualsUtils.checkList(this.personList, other.personList);
+  }
+
+  @Override
+  public AddressBook clone() throws CloneNotSupportedException {
+    AddressBook abCloned = (AddressBook) super.clone();
+    abCloned.nextId = this.nextId;
+    Stream<Person> stream = this.personList.stream().map(p -> {
+      try {
+        return p.clone();
+      } catch (CloneNotSupportedException e) {
+        return null;
+      }
+    });
+    abCloned.personList = stream.collect(Collectors.toList());
+    return abCloned;
   }
 }

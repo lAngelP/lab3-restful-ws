@@ -4,9 +4,9 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.junit.After;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URI;
+import rest.addressbook.config.ApplicationConfig;
+import rest.addressbook.domain.AddressBook;
+import rest.addressbook.domain.Person;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -14,12 +14,11 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
-
-import rest.addressbook.config.ApplicationConfig;
-import rest.addressbook.domain.AddressBook;
-import rest.addressbook.domain.Person;
+import java.io.IOException;
+import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 /**
  * A simple test suite
@@ -39,18 +38,21 @@ public class AddressBookServiceTest {
 		Client client = ClientBuilder.newClient();
 		Response response = client.target("http://localhost:8282/contacts")
 				.request().get();
+		AddressBook addressBookRead = response.readEntity(AddressBook.class);
 		assertEquals(200, response.getStatus());
-		assertEquals(0, response.readEntity(AddressBook.class).getPersonList()
-				.size());
+		assertEquals(0, addressBookRead.getPersonList().size());
 
 		//////////////////////////////////////////////////////////////////////
 		// Verify that GET /contacts is well implemented by the service, i.e
 		// test that it is safe and idempotent
-		//////////////////////////////////////////////////////////////////////	
+		//////////////////////////////////////////////////////////////////////
+
+		//Both address books MUST be identical
+		assertEquals(ab, addressBookRead);
 	}
 
 	@Test
-	public void createUser() throws IOException {
+	public void createUser() throws IOException, CloneNotSupportedException {
 		// Prepare server
 		AddressBook ab = new AddressBook();
 		launchServer(ab);
@@ -84,11 +86,20 @@ public class AddressBookServiceTest {
 		assertEquals(1, juanUpdated.getId());
 		assertEquals(juanURI, juanUpdated.getHref());
 
+		AddressBook abOrig = ab.clone();
+		juan.setEmail("email@at.com");
+		response = client.target("http://localhost:8282/contacts")
+				.request(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(juan, MediaType.APPLICATION_JSON));
+		Person juanUpdated2 = response.readEntity(Person.class);
+
 		//////////////////////////////////////////////////////////////////////
 		// Verify that POST /contacts is well implemented by the service, i.e
 		// test that it is not safe and not idempotent
-		//////////////////////////////////////////////////////////////////////	
-				
+		//////////////////////////////////////////////////////////////////////
+		assertNotEquals(juanUpdated, juanUpdated2);
+		assertNotEquals(abOrig, ab);
+
 	}
 
 	@Test
@@ -134,15 +145,17 @@ public class AddressBookServiceTest {
 				.request(MediaType.APPLICATION_JSON).get();
 		assertEquals(200, response.getStatus());
 		assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getMediaType());
-		mariaUpdated = response.readEntity(Person.class);
-		assertEquals(maria.getName(), mariaUpdated.getName());
-		assertEquals(3, mariaUpdated.getId());
-		assertEquals(mariaURI, mariaUpdated.getHref());
+		Person mariaUpdated2 = response.readEntity(Person.class);
+		assertEquals(maria.getName(), mariaUpdated2.getName());
+		assertEquals(3, mariaUpdated2.getId());
+		assertEquals(mariaURI, mariaUpdated2.getHref());
 
 		//////////////////////////////////////////////////////////////////////
 		// Verify that GET /contacts/person/3 is well implemented by the service, i.e
 		// test that it is safe and idempotent
-		//////////////////////////////////////////////////////////////////////	
+		//////////////////////////////////////////////////////////////////////
+
+		assertEquals(mariaUpdated, mariaUpdated2);
 	
 	}
 
@@ -174,12 +187,14 @@ public class AddressBookServiceTest {
 		//////////////////////////////////////////////////////////////////////
 		// Verify that POST is well implemented by the service, i.e
 		// test that it is not safe and not idempotent
-		//////////////////////////////////////////////////////////////////////	
+		//////////////////////////////////////////////////////////////////////
+		//TODO POST Request??? Where is that request?
+		assertEquals(ab, addressBookRetrieved);
 	
 	}
 
 	@Test
-	public void updateUsers() throws IOException {
+	public void updateUsers() throws IOException, CloneNotSupportedException {
 		// Prepare server
 		AddressBook ab = new AddressBook();
 		Person salvador = new Person();
@@ -194,6 +209,7 @@ public class AddressBookServiceTest {
 		launchServer(ab);
 
 		// Update Maria
+		AddressBook abFirst = ab.clone();
 		Person maria = new Person();
 		maria.setName("Maria");
 		Client client = ClientBuilder.newClient();
@@ -222,13 +238,23 @@ public class AddressBookServiceTest {
 		response = client.target("http://localhost:8282/contacts/person/3")
 				.request(MediaType.APPLICATION_JSON)
 				.put(Entity.entity(maria, MediaType.APPLICATION_JSON));
+
 		assertEquals(400, response.getStatus());
+
+		AddressBook abSecond = ab.clone();
+		response = client
+				.target("http://localhost:8282/contacts/person/2")
+				.request(MediaType.APPLICATION_JSON)
+				.put(Entity.entity(maria, MediaType.APPLICATION_JSON));
+		assertEquals(200, response.getStatus());
 
 		//////////////////////////////////////////////////////////////////////
 		// Verify that PUT /contacts/person/2 is well implemented by the service, i.e
 		// test that it is idempotent
-		//////////////////////////////////////////////////////////////////////	
-	
+		//////////////////////////////////////////////////////////////////////
+		//TODO
+		assertNotEquals(abFirst, abSecond);
+		assertEquals(abSecond, ab);
 	}
 
 	@Test
@@ -260,7 +286,8 @@ public class AddressBookServiceTest {
 		//////////////////////////////////////////////////////////////////////
 		// Verify that DELETE /contacts/person/2 is well implemented by the service, i.e
 		// test that it is idempotent
-		//////////////////////////////////////////////////////////////////////	
+		//////////////////////////////////////////////////////////////////////
+		//TODO
 
 	}
 
