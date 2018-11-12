@@ -15,10 +15,6 @@ public class EqualsUtils {
     }
 
     public static <T> boolean checkObject(T one, T other){
-        if (one != null) {
-            return one.equals(other);
-        } else {
-            return other == null;
-        }
+        return one == null && other == null || one != null && one.equals(other);
     }
 }

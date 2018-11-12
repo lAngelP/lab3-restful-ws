@@ -6,6 +6,7 @@ import rest.addressbook.utils.EqualsUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -92,5 +93,10 @@ public class Person implements Cloneable {
     }
     p.phoneList = this.phoneList.stream().map(PhoneNumber::clone).collect(Collectors.toList());
     return p;
+  }
+
+  @Override
+  public String toString() {
+    return "Person[id=" + id + ",name=" + name + ",email=" + email + ",href=" + href + ",phones=" + Arrays.toString(phoneList.toArray()) + ", ]";
   }
 }

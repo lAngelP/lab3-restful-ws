@@ -17,8 +17,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.net.URI;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.*;
 
 /**
  * A simple test suite
@@ -47,8 +46,8 @@ public class AddressBookServiceTest {
 		// test that it is safe and idempotent
 		//////////////////////////////////////////////////////////////////////
 
-		//Both address books MUST be identical
-		assertEquals(ab, addressBookRead);
+		assertEquals(0, addressBookRead.getNextId());
+		assertTrue(addressBookRead.getPersonList().isEmpty());
 	}
 
 	@Test
@@ -188,13 +187,15 @@ public class AddressBookServiceTest {
 		// Verify that POST is well implemented by the service, i.e
 		// test that it is not safe and not idempotent
 		//////////////////////////////////////////////////////////////////////
-		//TODO POST Request??? Where is that request?
-		assertEquals(ab, addressBookRetrieved);
-	
+		//TODO Is OK?
+		assertEquals(2, ab.getPersonList().size());
+		checkPerson(salvador, ab.getPersonList().get(0));
+		checkPerson(juan, ab.getPersonList().get(1));
+
 	}
 
 	@Test
-	public void updateUsers() throws IOException, CloneNotSupportedException {
+	public void updateUsers() throws IOException {
 		// Prepare server
 		AddressBook ab = new AddressBook();
 		Person salvador = new Person();
@@ -209,7 +210,6 @@ public class AddressBookServiceTest {
 		launchServer(ab);
 
 		// Update Maria
-		AddressBook abFirst = ab.clone();
 		Person maria = new Person();
 		maria.setName("Maria");
 		Client client = ClientBuilder.newClient();
@@ -241,7 +241,6 @@ public class AddressBookServiceTest {
 
 		assertEquals(400, response.getStatus());
 
-		AddressBook abSecond = ab.clone();
 		response = client
 				.target("http://localhost:8282/contacts/person/2")
 				.request(MediaType.APPLICATION_JSON)
@@ -252,9 +251,9 @@ public class AddressBookServiceTest {
 		// Verify that PUT /contacts/person/2 is well implemented by the service, i.e
 		// test that it is idempotent
 		//////////////////////////////////////////////////////////////////////
-		//TODO
-		assertNotEquals(abFirst, abSecond);
-		assertEquals(abSecond, ab);
+		//TODO IS OK?
+		assertEquals(2, ab.getPersonList().size());
+		checkPerson(maria, ab.getPersonList().get(1));
 	}
 
 	@Test
@@ -287,8 +286,8 @@ public class AddressBookServiceTest {
 		// Verify that DELETE /contacts/person/2 is well implemented by the service, i.e
 		// test that it is idempotent
 		//////////////////////////////////////////////////////////////////////
-		//TODO
-
+		assertEquals(1, ab.getPersonList().size());
+		assertEquals(salvador.getName(), ab.getPersonList().get(0).getName());
 	}
 
 	@Test
@@ -331,6 +330,11 @@ public class AddressBookServiceTest {
 		response = client.target("http://localhost:8282/contacts/person/3")
 				.request(MediaType.APPLICATION_JSON).get();
 		assertEquals(404, response.getStatus());
+
+		//TEST GET is safe and idempotent
+		assertEquals(2, ab.getPersonList().size());
+		assertEquals(salvador, ab.getPersonList().get(0));
+		assertEquals(juan, ab.getPersonList().get(1));
 	}
 
 	private void launchServer(AddressBook ab) throws IOException {
@@ -338,6 +342,11 @@ public class AddressBookServiceTest {
 		server = GrizzlyHttpServerFactory.createHttpServer(uri,
 				new ApplicationConfig(ab));
 		server.start();
+	}
+
+	private void checkPerson(Person original, Person addressPerson) {
+		assertEquals(original.getName(), addressPerson.getName());
+		assertEquals(original.getEmail(), addressPerson.getEmail());
 	}
 
 	@After
