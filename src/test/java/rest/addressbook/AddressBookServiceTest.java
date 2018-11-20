@@ -46,7 +46,7 @@ public class AddressBookServiceTest {
 		// test that it is safe and idempotent
 		//////////////////////////////////////////////////////////////////////
 
-		assertEquals(0, addressBookRead.getNextId());
+		assertEquals(1, addressBookRead.getNextId());
 		assertTrue(addressBookRead.getPersonList().isEmpty());
 	}
 
