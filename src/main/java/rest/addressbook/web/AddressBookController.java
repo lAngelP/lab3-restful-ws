@@ -1,22 +1,12 @@
 package rest.addressbook.web;
 
-import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
-
 import rest.addressbook.domain.AddressBook;
 import rest.addressbook.domain.Person;
+
+import javax.inject.Inject;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import javax.ws.rs.core.Response.Status;
 
 /**
  * A service that manipulates contacts in an address book.
@@ -30,6 +20,10 @@ public class AddressBookController {
   @Inject
   AddressBook addressBook;
 
+  @Context
+
+  UriInfo uriInfo;
+
   /**
    * A GET /contacts request should return the address book in JSON.
    *
@@ -37,8 +31,8 @@ public class AddressBookController {
    */
   @GET
   @Produces(MediaType.APPLICATION_JSON)
-  public AddressBook getAddressBook() {
-    return addressBook;
+  public Response getAddressBook() {
+    return Response.ok(addressBook).links(addressBook.getPersonList().stream().map(Person::getLink).toArray(Link[]::new)).build();
   }
 
   /**
@@ -55,7 +49,7 @@ public class AddressBookController {
     addressBook.getPersonList().add(person);
     person.setId(addressBook.nextId());
     person.setHref(info.getAbsolutePathBuilder().path("person/{id}").build(person.getId()));
-    return Response.created(person.getHref()).entity(person).build();
+    return Response.created(person.getHref()).links(person.getLink()).entity(person).build();
   }
 
   /**
@@ -70,7 +64,7 @@ public class AddressBookController {
   public Response getPerson(@PathParam("id") int id) {
     for (Person p : addressBook.getPersonList()) {
       if (p.getId() == id) {
-        return Response.ok(p).build();
+        return Response.ok(p).links(p.getLink()).build();
       }
     }
     return Response.status(Status.NOT_FOUND).build();
@@ -94,7 +88,7 @@ public class AddressBookController {
         person.setId(id);
         person.setHref(info.getAbsolutePath());
         addressBook.getPersonList().set(i, person);
-        return Response.ok(person).build();
+        return Response.ok(person).links(person.getLink()).build();
       }
     }
     return Response.status(Status.BAD_REQUEST).build();

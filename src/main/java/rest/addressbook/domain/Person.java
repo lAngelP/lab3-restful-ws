@@ -3,6 +3,7 @@ package rest.addressbook.domain;
 import rest.addressbook.utils.CloneUtils;
 import rest.addressbook.utils.EqualsUtils;
 
+import javax.ws.rs.core.Link;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ public class Person implements Cloneable {
   private int id;
   private String email;
   private URI href;
+  private Link link;
   private List<PhoneNumber> phoneList = new ArrayList<>();
 
   public String getName() {
@@ -67,6 +69,7 @@ public class Person implements Cloneable {
 
   public void setHref(URI href) {
     this.href = href;
+    this.link = Link.fromUri(href).rel("self").type("GET").build();
   }
 
   @Override
@@ -87,7 +90,7 @@ public class Person implements Cloneable {
     p.id = this.id;
     p.email = CloneUtils.clone(this.email);
     try {
-      p.href = this.href != null ? new URI(this.href.getPath()) : null;
+      p.setHref(this.href != null ? new URI(this.href.getPath()) : null);
     } catch (URISyntaxException e) {
       throw new CloneNotSupportedException("Cannot clone person due to URI exception: " + e.getMessage());
     }
@@ -98,5 +101,9 @@ public class Person implements Cloneable {
   @Override
   public String toString() {
     return "Person[id=" + id + ",name=" + name + ",email=" + email + ",href=" + href + ",phones=" + Arrays.toString(phoneList.toArray()) + ", ]";
+  }
+
+  public Link getLink() {
+    return link;
   }
 }
